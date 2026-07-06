@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d7377">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Parla">
 <title>Parla — voice to text</title>
 <style>
   :root {
@@ -202,7 +210,7 @@
     overflow-wrap: anywhere;
   }
 
-  .pad label {
+  .pad > label {
     display: block;
     font-size: 0.72rem;
     font-weight: 700;
@@ -289,6 +297,85 @@
     white-space: nowrap;
   }
 
+  .opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .opt input { accent-color: var(--accent); }
+
+  details.extra {
+    margin-top: 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface-2);
+  }
+  details.extra summary {
+    cursor: pointer;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    list-style-position: inside;
+  }
+  details.extra[open] summary { border-bottom: 1px solid var(--line); }
+  .extra-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .hint { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.5; }
+  .extra-body textarea, .extra-body input {
+    width: 100%;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+  }
+  .extra-body textarea { resize: vertical; min-height: 80px; }
+  .extra-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .item-row .item-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    background: none;
+    border: 0;
+    color: var(--ink);
+    cursor: pointer;
+    padding: 0;
+    font-family: var(--sans);
+  }
+  .item-row .item-meta { font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+  .item-row .item-del {
+    background: none;
+    border: 0;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 2px 4px;
+  }
+  .item-row .item-del:hover { color: var(--record); }
+  .empty-hint { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+
   .note {
     margin-top: 24px;
     font-size: 0.82rem;
@@ -336,18 +423,56 @@
         <button class="btn" id="shareBtn" hidden>Share</button>
         <button class="btn primary" id="copyBtn">Copy</button>
       </div>
+      <div class="toolbar">
+        <label class="opt"><input type="checkbox" id="autoCopyChk"> Copy automatically when dictation stops</label>
+      </div>
     </div>
 
     <div class="cmds">
       <h2 id="cmdTitle">Spoken commands (English)</h2>
       <div class="cmd-grid" id="cmdGrid"></div>
     </div>
+
+    <details class="extra">
+      <summary>Vocabulary: auto corrections</summary>
+      <div class="extra-body">
+        <p class="hint">One rule per line, format: <em>what the engine hears = what you want</em>. Whole words, case does not matter. Applied to every dictation in both languages.</p>
+        <textarea id="vocabTa" rows="6" spellcheck="false"></textarea>
+        <div class="extra-actions">
+          <span class="hint" id="vocabInfo"></span>
+          <button class="btn" id="vocabSave">Save rules</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="extra">
+      <summary>Snippets</summary>
+      <div class="extra-body">
+        <p class="hint">Saved blocks of text. Insert one with a tap, or by dictating "insert name" (English) or "inserisci name" (Italian).</p>
+        <div id="snipList"></div>
+        <input id="snipName" placeholder="Name, e.g. signature">
+        <textarea id="snipText" rows="3" placeholder="Snippet text"></textarea>
+        <div class="extra-actions">
+          <span></span>
+          <button class="btn" id="snipAdd">Add snippet</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="extra">
+      <summary>History</summary>
+      <div class="extra-body">
+        <p class="hint">Your last 20 dictations, saved only on this device. Tap one to restore it into the transcript.</p>
+        <div id="histList"></div>
+      </div>
+    </details>
   </div>
 
   <p class="note" id="supportNote">
     <strong>Works in:</strong> Chrome and Edge on Windows, Safari on iPhone (iOS 14.5 or later, Siri &amp; Dictation must be enabled in Settings).
     Recognition runs through your browser's speech engine, so an internet connection is required.
     Filler sounds are removed and capitalisation is applied automatically.
+    On a keyboard, Ctrl + Space starts and stops dictation.
   </p>
   <p class="note">
     <strong>If the microphone button is blocked</strong> (some embedded viewers never allow it):
@@ -386,12 +511,21 @@
         [/\bperiod\b/gi, "."],
         [/\bsemicolon\b/gi, ";"],
         [/\bcolon\b/gi, ":"],
-        [/\bcomma\b/gi, ","]
+        [/\bcomma\b/gi, ","],
+        [/\bopen quotes?\b/gi, "\u0001"],
+        [/\bclose quotes?\b/gi, "\u0002"],
+        [/\bopen (?:bracket|parenthesis)\b/gi, "("],
+        [/\bclose (?:bracket|parenthesis)\b/gi, ")"],
+        [/\bpercent sign\b/gi, "%"],
+        [/\beuro sign\b/gi, "€"]
       ],
       help: [
         ["period / full stop", "."], ["comma", ","], ["question mark", "?"],
         ["exclamation mark", "!"], ["colon", ":"], ["semicolon", ";"],
-        ["new line", "line break"], ["new paragraph", "paragraph"]
+        ["open / close quote", "\" \""], ["open / close bracket", "( )"],
+        ["percent sign", "%"], ["euro sign", "€"],
+        ["new line", "line break"], ["new paragraph", "paragraph"],
+        ["scratch that", "deletes last phrase"]
       ]
     },
     "it-IT": {
@@ -405,12 +539,21 @@
         [/\bpunto esclamativo\b/gi, "!"],
         [/\bdue punti\b/gi, ":"],
         [/\bpunto\b(?!\s+(?:di|del|della|dei|delle|degli|debole|forte)\b)/gi, "."],
-        [/\bvirgola\b/gi, ","]
+        [/\bvirgola\b/gi, ","],
+        [/\bapri virgolette\b/gi, "\u0001"],
+        [/\bchiudi virgolette\b/gi, "\u0002"],
+        [/\bapri parentesi\b/gi, "("],
+        [/\bchiudi parentesi\b/gi, ")"],
+        [/\bper ?cento\b/gi, "%"],
+        [/\bsimbolo euro\b/gi, "€"]
       ],
       help: [
         ["punto", "."], ["virgola", ","], ["punto interrogativo", "?"],
         ["punto esclamativo", "!"], ["due punti", ":"], ["punto e virgola", ";"],
-        ["a capo", "riga nuova"], ["nuovo paragrafo", "paragrafo"]
+        ["apri / chiudi virgolette", "\" \""], ["apri / chiudi parentesi", "( )"],
+        ["per cento", "%"], ["simbolo euro", "€"],
+        ["a capo", "riga nuova"], ["nuovo paragrafo", "paragrafo"],
+        ["cancella frase", "cancella l'ultima frase"]
       ]
     }
   };
@@ -422,6 +565,25 @@
   var listening = false;      // user intent: should we be recording
   var rec = null;
   var restartFails = 0;
+  var undoStack = [];
+  var autoCopy = storeGet("parla-autocopy") !== "0";
+
+  // ---- vocabulary (auto corrections) --------------------------------------
+  var VOCAB_DEFAULT = "jmp = JMP\neln = ELN\nsolenis = Solenis\nleiden = Leiden\ncaldara = Caldara";
+  var vocabRules = [];
+  function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function parseVocab(text) {
+    var rules = [];
+    text.split("\n").forEach(function (line) {
+      var i = line.indexOf("=");
+      if (i < 1) return;
+      var from = line.slice(0, i).trim();
+      var to = line.slice(i + 1).trim();
+      if (!from || !to) return;
+      rules.push({ re: new RegExp("\\b" + escRe(from) + "\\b", "gi"), to: to });
+    });
+    return rules;
+  }
 
   function renderCmds() {
     cmdTitle.textContent = "Spoken commands (" + LANGS[lang].label + ")";
@@ -453,15 +615,21 @@
   document.getElementById("langIT").addEventListener("click", function () { setLang("it-IT"); });
 
   // ---- text cleanup -------------------------------------------------------
+  // \u0001 = opening quote marker, \u0002 = closing quote marker.
   function clean(raw) {
     var t = " " + raw + " ";
     t = t.replace(LANGS[lang].fillers, "$1");
     LANGS[lang].commands.forEach(function (c) { t = t.replace(c[0], c[1]); });
-    t = t.replace(/\s+([.,;:!?])/g, "$1"); // pull punctuation onto previous word
+    t = t.replace(/\s*\u0001\s*/g, ' "');    // opening quote: space before, none after
+    t = t.replace(/\s*\u0002\s*/g, '" ');     // closing quote: attach to previous word
+    t = t.replace(/\(\s+/g, "(");
+    t = t.replace(/\s+\)/g, ")");
+    t = t.replace(/\s+([.,;:!?%])/g, "$1");        // pull punctuation onto previous word
     t = t.replace(/[ \t]+/g, " ");
-    t = t.replace(/([.,;:!?])(?=[A-Za-zÀ-ſ])/g, "$1 ");
+    t = t.replace(/([.,;:!?)])(?=[A-Za-zÀ-ſ])/g, "$1 ");
     t = t.replace(/ ?\n ?/g, "\n");
     t = t.trim();
+    vocabRules.forEach(function (r) { t = t.replace(r.re, r.to); });
     if (lang === "en-US") {
       t = t.replace(/(^|\s)i(?=\s|'|$)/g, "$1I");
       t = t.replace(/\bphd\b/gi, "PhD");
@@ -484,6 +652,8 @@
   function appendChunk(chunk) {
     if (!chunk) return;
     var before = pad.value;
+    undoStack.push(before);
+    if (undoStack.length > 20) undoStack.shift();
     chunk = capitalizeInContext(chunk, before);
     var glue = "";
     if (before && !/\s$/.test(before) && !/^[\n.,;:!?]/.test(chunk)) glue = " ";
@@ -551,16 +721,37 @@
         try { rec = buildRecognizer(); rec.start(); }
         catch (err) { listening = false; setUI(false, "Could not restart recognition.", true); }
       } else {
-        setUI(false, "Tap the microphone and speak");
+        finishStop();
       }
     };
     return r;
+  }
+
+  function finishStop() {
+    setUI(false, "Tap the microphone and speak");
+    saveHistory();
+    if (autoCopy && pad.value.trim()) {
+      copyText(pad.value, function (ok) {
+        if (ok) setUI(false, "Stopped. Text copied to clipboard.");
+      });
+    }
   }
 
   function commitSession() {
     var t = clean(sessionFinal);
     sessionFinal = "";
     interimEl.textContent = "";
+    if (!t) return;
+    var low = t.toLowerCase().replace(/[.,;:!?]+$/, "").trim();
+    if (low === "scratch that" || low === "cancella frase") {
+      if (undoStack.length) { pad.value = undoStack.pop(); updateCount(); }
+      return;
+    }
+    var m = low.match(/^(?:insert|inserisci)\s+(.+)$/);
+    if (m) {
+      var s = findSnippet(m[1]);
+      if (s) { appendChunk(s.text); return; }
+    }
     appendChunk(t);
   }
 
@@ -612,19 +803,142 @@
     updateCount();
   });
 
+  function copyText(txt, done) {
+    function ok() { if (done) done(true); }
+    function fallback() {
+      try { pad.select(); document.execCommand("copy"); ok(); }
+      catch (e) { if (done) done(false); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(ok, fallback);
+    } else {
+      fallback();
+    }
+  }
+
   document.getElementById("copyBtn").addEventListener("click", function () {
-    var done = function () {
+    copyText(pad.value, function (ok) {
+      if (!ok) return;
       var b = document.getElementById("copyBtn");
       var old = b.textContent;
       b.textContent = "Copied";
       setTimeout(function () { b.textContent = old; }, 1400);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(pad.value).then(done, function () {
-        pad.select(); document.execCommand("copy"); done();
+    });
+  });
+
+  var autoChk = document.getElementById("autoCopyChk");
+  autoChk.checked = autoCopy;
+  autoChk.addEventListener("change", function () {
+    autoCopy = autoChk.checked;
+    storeSet("parla-autocopy", autoCopy ? "1" : "0");
+  });
+
+  // ---- history -------------------------------------------------------------
+  function loadHist() { try { return JSON.parse(storeGet("parla-history") || "[]"); } catch (e) { return []; } }
+  function saveHistory() {
+    var text = pad.value.trim();
+    if (!text) return;
+    var h = loadHist();
+    if (h[0] && h[0].text === text) return;
+    h.unshift({ t: Date.now(), text: text });
+    storeSet("parla-history", JSON.stringify(h.slice(0, 20)));
+    renderHist();
+  }
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  function renderHist() {
+    var el = document.getElementById("histList");
+    var h = loadHist();
+    el.innerHTML = "";
+    if (!h.length) {
+      el.innerHTML = '<div class="empty-hint">Nothing yet. Finished dictations appear here.</div>';
+      return;
+    }
+    h.forEach(function (item, idx) {
+      var row = document.createElement("div"); row.className = "item-row";
+      var btn = document.createElement("button"); btn.className = "item-text"; btn.type = "button";
+      btn.textContent = item.text;
+      btn.title = "Restore into transcript";
+      btn.addEventListener("click", function () {
+        undoStack.push(pad.value);
+        pad.value = item.text;
+        updateCount();
       });
-    } else {
-      pad.select(); document.execCommand("copy"); done();
+      var meta = document.createElement("span"); meta.className = "item-meta";
+      var d = new Date(item.t);
+      meta.textContent = two(d.getDate()) + "/" + two(d.getMonth() + 1) + " " + two(d.getHours()) + ":" + two(d.getMinutes());
+      var del = document.createElement("button"); del.className = "item-del"; del.type = "button";
+      del.textContent = "✕";
+      del.setAttribute("aria-label", "Delete this entry");
+      del.addEventListener("click", function () {
+        var h2 = loadHist(); h2.splice(idx, 1);
+        storeSet("parla-history", JSON.stringify(h2));
+        renderHist();
+      });
+      row.appendChild(btn); row.appendChild(meta); row.appendChild(del);
+      el.appendChild(row);
+    });
+  }
+
+  // ---- snippets --------------------------------------------------------------
+  function loadSnips() { try { return JSON.parse(storeGet("parla-snips") || "[]"); } catch (e) { return []; } }
+  function saveSnips(s) { storeSet("parla-snips", JSON.stringify(s)); renderSnips(); }
+  function findSnippet(name) {
+    name = name.toLowerCase().trim();
+    var s = loadSnips();
+    for (var i = 0; i < s.length; i++) if (s[i].name.toLowerCase() === name) return s[i];
+    for (var j = 0; j < s.length; j++) if (s[j].name.toLowerCase().indexOf(name) === 0) return s[j];
+    return null;
+  }
+  function renderSnips() {
+    var el = document.getElementById("snipList");
+    var s = loadSnips();
+    el.innerHTML = "";
+    if (!s.length) {
+      el.innerHTML = '<div class="empty-hint">No snippets yet.</div>';
+      return;
+    }
+    s.forEach(function (item, idx) {
+      var row = document.createElement("div"); row.className = "item-row";
+      var btn = document.createElement("button"); btn.className = "item-text"; btn.type = "button";
+      btn.textContent = item.name + ": " + item.text;
+      btn.title = "Insert into transcript";
+      btn.addEventListener("click", function () { appendChunk(item.text); });
+      var del = document.createElement("button"); del.className = "item-del"; del.type = "button";
+      del.textContent = "✕";
+      del.setAttribute("aria-label", "Delete this snippet");
+      del.addEventListener("click", function () {
+        var s2 = loadSnips(); s2.splice(idx, 1); saveSnips(s2);
+      });
+      row.appendChild(btn); row.appendChild(del);
+      el.appendChild(row);
+    });
+  }
+  document.getElementById("snipAdd").addEventListener("click", function () {
+    var n = document.getElementById("snipName").value.trim();
+    var t = document.getElementById("snipText").value.trim();
+    if (!n || !t) return;
+    var s = loadSnips();
+    s.push({ name: n, text: t });
+    saveSnips(s);
+    document.getElementById("snipName").value = "";
+    document.getElementById("snipText").value = "";
+  });
+
+  // ---- vocabulary UI ---------------------------------------------------------
+  var vocabTa = document.getElementById("vocabTa");
+  var vocabInfo = document.getElementById("vocabInfo");
+  document.getElementById("vocabSave").addEventListener("click", function () {
+    storeSet("parla-vocab", vocabTa.value);
+    vocabRules = parseVocab(vocabTa.value);
+    vocabInfo.textContent = vocabRules.length + " active rule" + (vocabRules.length === 1 ? "" : "s");
+  });
+
+  // ---- keyboard shortcut ------------------------------------------------------
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey && !e.altKey && !e.metaKey && e.code === "Space") {
+      e.preventDefault();
+      if (!SR) return;
+      if (listening) stopListening(); else startListening();
     }
   });
 
@@ -637,6 +951,15 @@
   }
 
   // ---- boot ---------------------------------------------------------------
+  var vocabSaved = storeGet("parla-vocab");
+  vocabTa.value = vocabSaved === null ? VOCAB_DEFAULT : vocabSaved;
+  vocabRules = parseVocab(vocabTa.value);
+  vocabInfo.textContent = vocabRules.length + " active rule" + (vocabRules.length === 1 ? "" : "s");
+  renderSnips();
+  renderHist();
+  if ("serviceWorker" in navigator && location.protocol === "https:" && !framed) {
+    try { navigator.serviceWorker.register("sw.js"); } catch (e) {}
+  }
   setLang(lang);
   if (!SR) {
     micBtn.disabled = true;

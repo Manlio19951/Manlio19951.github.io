@@ -1,0 +1,13 @@
+{
+  "name": "Parla — voice to text",
+  "short_name": "Parla",
+  "description": "Voice to text dictation for English and Italian",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f7f5f1",
+  "theme_color": "#0d7377",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
