@@ -1,8 +1,8 @@
-# Manual fallback deployment for GitHub Pages.
-# Only runs when triggered by hand (workflow_dispatch), and only works
-# if repo Settings > Pages > Source is set to "GitHub Actions".
-name: Deploy Pages (manual fallback)
+# Deploys the site to GitHub Pages on every push to main.
+name: Deploy Pages
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
