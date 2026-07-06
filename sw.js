@@ -1,4 +1,4 @@
-var CACHE = "parla-v2";
+var CACHE = "parla-v3";
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
     return c.addAll(["./", "./index.html", "./manifest.json", "./icon-192.png"]);
