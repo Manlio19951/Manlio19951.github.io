@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parla — voice to text</title>
+<style>
+  :root {
+    --bg: #f7f5f1;
+    --surface: #ffffff;
+    --surface-2: #efece6;
+    --ink: #20242b;
+    --muted: #6d7078;
+    --line: #e2ded6;
+    --accent: #0d7377;
+    --accent-ink: #ffffff;
+    --record: #d64545;
+    --record-soft: rgba(214, 69, 69, 0.14);
+    --shadow: 0 1px 2px rgba(32, 36, 43, 0.06), 0 8px 24px rgba(32, 36, 43, 0.07);
+    --radius: 14px;
+    --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181d;
+      --surface: #1e2229;
+      --surface-2: #262b33;
+      --ink: #e8e6e1;
+      --muted: #9a9da5;
+      --line: #333944;
+      --accent: #44c2c7;
+      --accent-ink: #10353a;
+      --record: #e0685e;
+      --record-soft: rgba(224, 104, 94, 0.16);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f5f1;
+    --surface: #ffffff;
+    --surface-2: #efece6;
+    --ink: #20242b;
+    --muted: #6d7078;
+    --line: #e2ded6;
+    --accent: #0d7377;
+    --accent-ink: #ffffff;
+    --record: #d64545;
+    --record-soft: rgba(214, 69, 69, 0.14);
+    --shadow: 0 1px 2px rgba(32, 36, 43, 0.06), 0 8px 24px rgba(32, 36, 43, 0.07);
+  }
+  :root[data-theme="dark"] {
+    --bg: #15181d;
+    --surface: #1e2229;
+    --surface-2: #262b33;
+    --ink: #e8e6e1;
+    --muted: #9a9da5;
+    --line: #333944;
+    --accent: #44c2c7;
+    --accent-ink: #10353a;
+    --record: #e0685e;
+    --record-soft: rgba(224, 104, 94, 0.16);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand h1 {
+    font-family: var(--serif);
+    font-size: 1.55rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .brand .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    align-self: center;
+    flex: none;
+  }
+  .brand span.tag {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .langs {
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .langs button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: 600 0.82rem var(--sans);
+    letter-spacing: 0.04em;
+    padding: 6px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .langs button[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .langs button:focus-visible,
+  .btn:focus-visible,
+  #micBtn:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px 20px;
+  }
+
+  .mic-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0 20px;
+  }
+  #micBtn {
+    position: relative;
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    border: 0;
+    cursor: pointer;
+    background: var(--accent);
+    color: var(--accent-ink);
+    display: grid;
+    place-items: center;
+    transition: background 0.2s ease, transform 0.1s ease;
+  }
+  #micBtn:active { transform: scale(0.96); }
+  #micBtn.rec { background: var(--record); color: #fff; }
+  #micBtn svg { width: 34px; height: 34px; }
+  #micBtn .ring {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 3px solid var(--record);
+    opacity: 0;
+    pointer-events: none;
+  }
+  #micBtn.rec .ring { animation: pulse 1.6s ease-out infinite; }
+  @keyframes pulse {
+    0%   { transform: scale(0.92); opacity: 0.7; }
+    100% { transform: scale(1.25); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #micBtn.rec .ring { animation: none; opacity: 0.6; }
+    #micBtn:active { transform: none; }
+  }
+
+  #status {
+    font-size: 0.88rem;
+    color: var(--muted);
+    min-height: 1.4em;
+    text-align: center;
+  }
+  #status.err { color: var(--record); }
+  #interim {
+    font-family: var(--serif);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--muted);
+    min-height: 1.5em;
+    text-align: center;
+    max-width: 56ch;
+    overflow-wrap: anywhere;
+  }
+
+  .pad label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 200px;
+    resize: vertical;
+    background: var(--surface-2);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: var(--serif);
+    font-size: 1.06rem;
+    line-height: 1.65;
+  }
+  textarea::placeholder { color: var(--muted); opacity: 0.7; }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  #count {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-right: auto;
+    font-variant-numeric: tabular-nums;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font: 600 0.85rem var(--sans);
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn:hover { filter: brightness(1.05); }
+
+  .cmds { margin-top: 28px; }
+  .cmds h2 {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  .cmd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 8px;
+  }
+  .cmd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 0.85rem;
+  }
+  .cmd .say { color: var(--ink); font-style: italic; font-family: var(--serif); }
+  .cmd .get {
+    color: var(--accent);
+    font-weight: 700;
+    font-family: var(--sans);
+    white-space: nowrap;
+  }
+
+  .note {
+    margin-top: 24px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .note strong { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>Parla</h1>
+      <span class="tag">voice to text</span>
+    </div>
+    <div class="langs" role="group" aria-label="Dictation language">
+      <button id="langEN" aria-pressed="true">EN</button>
+      <button id="langIT" aria-pressed="false">IT</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="mic-zone">
+      <button id="micBtn" aria-label="Start dictation">
+        <span class="ring"></span>
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/>
+          <path d="M5 11a1 1 0 1 1 2 0 5 5 0 0 0 10 0 1 1 0 1 1 2 0 7 7 0 0 1-6 6.93V20h2a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2h2v-2.07A7 7 0 0 1 5 11Z"/>
+        </svg>
+      </button>
+      <div id="status">Tap the microphone and speak</div>
+      <div id="interim" aria-live="polite"></div>
+    </div>
+
+    <div class="pad">
+      <label for="pad">Transcript</label>
+      <textarea id="pad" placeholder="Your cleaned up text appears here. You can edit it directly."></textarea>
+      <div class="toolbar">
+        <span id="count">0 words</span>
+        <button class="btn" id="clearBtn">Clear</button>
+        <button class="btn" id="cleanBtn">Clean up</button>
+        <button class="btn" id="shareBtn" hidden>Share</button>
+        <button class="btn primary" id="copyBtn">Copy</button>
+      </div>
+    </div>
+
+    <div class="cmds">
+      <h2 id="cmdTitle">Spoken commands (English)</h2>
+      <div class="cmd-grid" id="cmdGrid"></div>
+    </div>
+  </div>
+
+  <p class="note" id="supportNote">
+    <strong>Works in:</strong> Chrome and Edge on Windows, Safari on iPhone (iOS 14.5 or later, Siri &amp; Dictation must be enabled in Settings).
+    Recognition runs through your browser's speech engine, so an internet connection is required.
+    Filler sounds are removed and capitalisation is applied automatically.
+  </p>
+  <p class="note">
+    <strong>If the microphone button is blocked</strong> (some embedded viewers never allow it):
+    tap into the transcript box and dictate with your system's own microphone instead:
+    the mic key on the iPhone keyboard, or Win + H on Windows. Then tap <strong>Clean up</strong>
+    to apply the same filler removal, punctuation commands, and capitalisation to that text.
+  </p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var micBtn = document.getElementById("micBtn");
+  var statusEl = document.getElementById("status");
+  var interimEl = document.getElementById("interim");
+  var pad = document.getElementById("pad");
+  var countEl = document.getElementById("count");
+  var cmdGrid = document.getElementById("cmdGrid");
+  var cmdTitle = document.getElementById("cmdTitle");
+  var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+  var framed = false;
+  try { framed = window.self !== window.top; } catch (e) { framed = true; }
+
+  var LANGS = {
+    "en-US": {
+      label: "English",
+      fillers: /(^|\s)(?:um+|uh+|uhm+|erm+|hmm+)(?=\s|$|[.,;:!?])/gi,
+      commands: [
+        [/\bnew paragraph\b/gi, "\n\n"],
+        [/\bnew line\b/gi, "\n"],
+        [/\bquestion mark\b/gi, "?"],
+        [/\bexclamation (?:mark|point)\b/gi, "!"],
+        [/\bfull stop\b/gi, "."],
+        [/\bperiod\b/gi, "."],
+        [/\bsemicolon\b/gi, ";"],
+        [/\bcolon\b/gi, ":"],
+        [/\bcomma\b/gi, ","]
+      ],
+      help: [
+        ["period / full stop", "."], ["comma", ","], ["question mark", "?"],
+        ["exclamation mark", "!"], ["colon", ":"], ["semicolon", ";"],
+        ["new line", "line break"], ["new paragraph", "paragraph"]
+      ]
+    },
+    "it-IT": {
+      label: "Italiano",
+      fillers: /(^|\s)(?:ehm+|uhm+|mmm+)(?=\s|$|[.,;:!?])/gi,
+      commands: [
+        [/\bnuovo paragrafo\b/gi, "\n\n"],
+        [/\ba capo\b/gi, "\n"],
+        [/\bpunto e virgola\b/gi, ";"],
+        [/\bpunto interrogativo\b/gi, "?"],
+        [/\bpunto esclamativo\b/gi, "!"],
+        [/\bdue punti\b/gi, ":"],
+        [/\bpunto\b(?!\s+(?:di|del|della|dei|delle|degli|debole|forte)\b)/gi, "."],
+        [/\bvirgola\b/gi, ","]
+      ],
+      help: [
+        ["punto", "."], ["virgola", ","], ["punto interrogativo", "?"],
+        ["punto esclamativo", "!"], ["due punti", ":"], ["punto e virgola", ";"],
+        ["a capo", "riga nuova"], ["nuovo paragrafo", "paragrafo"]
+      ]
+    }
+  };
+
+  function storeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function storeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  var lang = storeGet("parla-lang") || "en-US";
+  var listening = false;      // user intent: should we be recording
+  var rec = null;
+  var restartFails = 0;
+
+  function renderCmds() {
+    cmdTitle.textContent = "Spoken commands (" + LANGS[lang].label + ")";
+    cmdGrid.innerHTML = "";
+    LANGS[lang].help.forEach(function (pair) {
+      var div = document.createElement("div");
+      div.className = "cmd";
+      var say = document.createElement("span");
+      say.className = "say";
+      say.textContent = "“" + pair[0] + "”";
+      var get = document.createElement("span");
+      get.className = "get";
+      get.textContent = pair[1];
+      div.appendChild(say);
+      div.appendChild(get);
+      cmdGrid.appendChild(div);
+    });
+  }
+
+  function setLang(next) {
+    lang = next;
+    storeSet("parla-lang", lang);
+    document.getElementById("langEN").setAttribute("aria-pressed", String(lang === "en-US"));
+    document.getElementById("langIT").setAttribute("aria-pressed", String(lang === "it-IT"));
+    renderCmds();
+    if (listening) { stopListening(); startListening(); }
+  }
+  document.getElementById("langEN").addEventListener("click", function () { setLang("en-US"); });
+  document.getElementById("langIT").addEventListener("click", function () { setLang("it-IT"); });
+
+  // ---- text cleanup -------------------------------------------------------
+  function clean(raw) {
+    var t = " " + raw + " ";
+    t = t.replace(LANGS[lang].fillers, "$1");
+    LANGS[lang].commands.forEach(function (c) { t = t.replace(c[0], c[1]); });
+    t = t.replace(/\s+([.,;:!?])/g, "$1"); // pull punctuation onto previous word
+    t = t.replace(/[ \t]+/g, " ");
+    t = t.replace(/([.,;:!?])(?=[A-Za-zÀ-ſ])/g, "$1 ");
+    t = t.replace(/ ?\n ?/g, "\n");
+    t = t.trim();
+    if (lang === "en-US") {
+      t = t.replace(/(^|\s)i(?=\s|'|$)/g, "$1I");
+      t = t.replace(/\bphd\b/gi, "PhD");
+    }
+    return t;
+  }
+
+  function capitalizeInContext(chunk, before) {
+    // Capitalize the chunk start when it begins the document, a paragraph,
+    // or follows a sentence ender. Also capitalize after . ! ? inside chunk.
+    var tail = before.replace(/\s+$/, "");
+    var startSentence = tail === "" || /[.!?…]$/.test(tail) || /\n$/.test(before);
+    var out = chunk.replace(/([.!?]\s+|\n+\s*)([a-zà-ÿ])/g, function (m, p, ch) {
+      return p + ch.toUpperCase();
+    });
+    if (startSentence) out = out.charAt(0).toUpperCase() + out.slice(1);
+    return out;
+  }
+
+  function appendChunk(chunk) {
+    if (!chunk) return;
+    var before = pad.value;
+    chunk = capitalizeInContext(chunk, before);
+    var glue = "";
+    if (before && !/\s$/.test(before) && !/^[\n.,;:!?]/.test(chunk)) glue = " ";
+    pad.value = before + glue + chunk;
+    updateCount();
+    pad.scrollTop = pad.scrollHeight;
+  }
+
+  function updateCount() {
+    var words = pad.value.trim() ? pad.value.trim().split(/\s+/).length : 0;
+    countEl.textContent = words + (words === 1 ? " word" : " words");
+  }
+  pad.addEventListener("input", updateCount);
+
+  // ---- recognition --------------------------------------------------------
+  // Session text is rebuilt from the FULL results list on every event, which
+  // works both on Chrome (result list grows) and iOS Safari (one growing result).
+  var sessionFinal = "";
+
+  function buildRecognizer() {
+    var r = new SR();
+    r.lang = lang;
+    r.continuous = !isIOS;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+
+    r.onresult = function (e) {
+      restartFails = 0;
+      var fin = "", interim = "";
+      for (var i = 0; i < e.results.length; i++) {
+        var txt = e.results[i][0].transcript;
+        if (e.results[i].isFinal) fin += txt + " ";
+        else interim += txt;
+      }
+      sessionFinal = fin;
+      interimEl.textContent = interim ? clean(interim) : "";
+    };
+
+    r.onerror = function (e) {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        listening = false;
+        if (framed) {
+          setUI(false, "Mic blocked (" + e.error + "): this embedded viewer does not pass microphone access to the page. Use your keyboard's dictation mic in the transcript box below, then tap Clean up.", true);
+        } else {
+          setUI(false, "Mic blocked (" + e.error + "). Check browser mic permission and that Siri & Dictation is enabled, or dictate into the transcript box with your keyboard mic and tap Clean up.", true);
+        }
+      } else if (e.error === "no-speech") {
+        // harmless: engine timed out waiting; onend will restart if still listening
+      } else if (e.error === "network") {
+        setUI(listening, "Speech service unreachable. Check your connection.", true);
+      } else if (e.error !== "aborted") {
+        setUI(listening, "Recognition error: " + e.error, true);
+      }
+    };
+
+    r.onend = function () {
+      commitSession();
+      if (listening) {
+        restartFails++;
+        if (restartFails > 25) {
+          listening = false;
+          setUI(false, "Recognition keeps stopping. Tap the microphone to try again.", true);
+          return;
+        }
+        try { rec = buildRecognizer(); rec.start(); }
+        catch (err) { listening = false; setUI(false, "Could not restart recognition.", true); }
+      } else {
+        setUI(false, "Tap the microphone and speak");
+      }
+    };
+    return r;
+  }
+
+  function commitSession() {
+    var t = clean(sessionFinal);
+    sessionFinal = "";
+    interimEl.textContent = "";
+    appendChunk(t);
+  }
+
+  function setUI(rec_, msg, isErr) {
+    micBtn.classList.toggle("rec", rec_);
+    micBtn.setAttribute("aria-label", rec_ ? "Stop dictation" : "Start dictation");
+    statusEl.textContent = msg;
+    statusEl.className = isErr ? "err" : "";
+  }
+
+  function startListening() {
+    if (!SR) return;
+    listening = true;
+    restartFails = 0;
+    sessionFinal = "";
+    try {
+      rec = buildRecognizer();
+      rec.start();
+      setUI(true, "Listening (" + LANGS[lang].label + ")… tap again to stop");
+    } catch (err) {
+      listening = false;
+      setUI(false, "Could not start recognition: " + err.message, true);
+    }
+  }
+
+  function stopListening() {
+    listening = false;
+    if (rec) { try { rec.stop(); } catch (e) {} }
+    setUI(false, "Tap the microphone and speak");
+  }
+
+  micBtn.addEventListener("click", function () {
+    if (!SR) return;
+    if (listening) stopListening(); else startListening();
+  });
+
+  // ---- toolbar ------------------------------------------------------------
+  document.getElementById("clearBtn").addEventListener("click", function () {
+    pad.value = "";
+    updateCount();
+  });
+
+  // Applies the full cleanup pipeline to whatever is in the transcript box.
+  // This makes OS level dictation (iPhone keyboard mic, Win+H on Windows)
+  // a first class input path when the page cannot use the microphone itself.
+  document.getElementById("cleanBtn").addEventListener("click", function () {
+    if (!pad.value.trim()) return;
+    pad.value = capitalizeInContext(clean(pad.value), "");
+    updateCount();
+  });
+
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    var done = function () {
+      var b = document.getElementById("copyBtn");
+      var old = b.textContent;
+      b.textContent = "Copied";
+      setTimeout(function () { b.textContent = old; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(pad.value).then(done, function () {
+        pad.select(); document.execCommand("copy"); done();
+      });
+    } else {
+      pad.select(); document.execCommand("copy"); done();
+    }
+  });
+
+  var shareBtn = document.getElementById("shareBtn");
+  if (navigator.share) {
+    shareBtn.hidden = false;
+    shareBtn.addEventListener("click", function () {
+      navigator.share({ text: pad.value }).catch(function () {});
+    });
+  }
+
+  // ---- boot ---------------------------------------------------------------
+  setLang(lang);
+  if (!SR) {
+    micBtn.disabled = true;
+    setUI(false, "This browser does not support speech recognition. Use Chrome or Edge on Windows, or Safari on iPhone.", true);
+  }
+})();
+</script>
+</body>
+</html>
